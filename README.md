@@ -1,6 +1,6 @@
 # NEM Dispatch Model
 
-[![Open in MoLab](https://marimo.io/shield.svg)](https://marimo.io/p/#url=https://raw.githubusercontent.com/EllieKallmier/production_cost_model/main/pypsa_dispatch.py)
+[![Open in MoLab](https://marimo.io/shield.svg)](https://marimo.io/github/EllieKallmier/production_cost_model/blob/main/pypsa_dispatch.py)
 
 An interactive, browser-runnable dispatch model of the **National Electricity Market (NEM)** built with [PyPSA](https://pypsa.org/) and [Marimo](https://marimo.io/). Designed for use in **SOLA5050**.
 
