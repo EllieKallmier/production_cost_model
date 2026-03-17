@@ -1,6 +1,6 @@
 # NEM Dispatch Model
 
-[![Open in MoLab](https://marimo.io/shield.svg)](https://molab.marimo.io/?url=https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/production_cost_model.py)
+[![Open in MoLab](https://marimo.io/shield.svg)](https://marimo.io/p/#url=https://raw.githubusercontent.com/EllieKallmier/production_cost_model/main/pypsa_dispatch.py)
 
 An interactive, browser-runnable dispatch model of the **National Electricity Market (NEM)** built with [PyPSA](https://pypsa.org/) and [Marimo](https://marimo.io/). Designed for use in **SOLA5050**.
 
@@ -46,14 +46,14 @@ Requires [uv](https://docs.astral.sh/uv/) (fast Python package manager).
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_ORG/YOUR_REPO.git
+git clone https://github.com/EllieKallmier/production_cost_model.git
 cd production_cost_model
 
 # Launch the notebook (read-only / student mode)
-uv run marimo run production_cost_model.py
+uv run marimo run pypsa_dispatch.py
 
 # Or open in edit mode to modify the code
-uv run marimo edit production_cost_model.py
+uv run marimo edit pypsa_dispatch.py
 ```
 
 `uv` will automatically create a virtual environment and install all dependencies on first run.
