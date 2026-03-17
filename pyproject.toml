@@ -1,0 +1,15 @@
+[project]
+name = "production-cost-model"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "highspy>=1.13.1",
+    "isp-trace-parser>=2.0.3",
+    "linopy>=0.6.5",
+    "marimo>=0.20.4",
+    "numpy>=2.4.3",
+    "pandas>=3.0.1",
+    "plotly>=6.6.0",
+    "pypsa>=1.1.2",
+]
