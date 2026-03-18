@@ -1121,18 +1121,6 @@ def _(bat_charge, dispatch, go, make_subplots, mo, network, price):
 
     _fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-    # Demand line (behind everything)
-    _fig.add_trace(
-        go.Scatter(
-            x=dispatch.index,
-            y=network.loads_t.p_set["Demand"],
-            name="Demand",
-            mode="lines",
-            line=dict(color="black", width=2, dash="dot"),
-        ),
-        secondary_y=False,
-    )
-
     # Battery charging (negative, shown below zero)
     if bat_charge.abs().sum() > 0.1:
         _fig.add_trace(
@@ -1166,6 +1154,18 @@ def _(bat_charge, dispatch, go, make_subplots, mo, network, price):
             ),
             secondary_y=False,
         )
+
+    # Demand line (added last so it renders above all stacked areas)
+    _fig.add_trace(
+        go.Scatter(
+            x=dispatch.index,
+            y=network.loads_t.p_set["Demand"],
+            name="Demand",
+            mode="lines",
+            line=dict(color="black", width=2, dash="dot"),
+        ),
+        secondary_y=False,
+    )
 
     # Marginal price on secondary axis
     _fig.add_trace(
@@ -1281,36 +1281,66 @@ def _(SOLAR_CF, WIND_CF, dispatch, go, mo, network, p_nom, pd):
     mo.stop(network is None, None)
 
     _snapshots = dispatch.index
-    _solar_max = pd.Series([cf * p_nom["Solar SAT"].value for cf in SOLAR_CF], index=_snapshots)
-    _wind_max  = pd.Series([cf * p_nom["Wind (WH)"].value  for cf in WIND_CF],  index=_snapshots)
+    _solar_max = pd.Series(
+        [cf * p_nom["Solar SAT"].value for cf in SOLAR_CF], index=_snapshots
+    )
+    _wind_max = pd.Series(
+        [cf * p_nom["Wind (WH)"].value for cf in WIND_CF], index=_snapshots
+    )
 
-    _solar_actual = dispatch["Solar SAT"] if "Solar SAT" in dispatch.columns else pd.Series(0.0, index=_snapshots)
-    _wind_actual  = dispatch["Wind (WH)"]  if "Wind (WH)"  in dispatch.columns else pd.Series(0.0, index=_snapshots)
+    _solar_actual = (
+        dispatch["Solar SAT"]
+        if "Solar SAT" in dispatch.columns
+        else pd.Series(0.0, index=_snapshots)
+    )
+    _wind_actual = (
+        dispatch["Wind (WH)"]
+        if "Wind (WH)" in dispatch.columns
+        else pd.Series(0.0, index=_snapshots)
+    )
 
     _fig_vre = go.Figure()
 
-    _fig_vre.add_trace(go.Scatter(
-        x=_snapshots, y=_solar_max.values,
-        name="Solar — max available", mode="lines",
-        line=dict(color="#FFD700", width=1.5, dash="dash"),
-    ))
-    _fig_vre.add_trace(go.Scatter(
-        x=_snapshots, y=_solar_actual.values,
-        name="Solar — dispatched", mode="lines",
-        line=dict(color="#FFD700", width=2),
-        fill="tozeroy", fillcolor="rgba(255,215,0,0.15)",
-    ))
-    _fig_vre.add_trace(go.Scatter(
-        x=_snapshots, y=_wind_max.values,
-        name="Wind — max available", mode="lines",
-        line=dict(color="#4ECDC4", width=1.5, dash="dash"),
-    ))
-    _fig_vre.add_trace(go.Scatter(
-        x=_snapshots, y=_wind_actual.values,
-        name="Wind — dispatched", mode="lines",
-        line=dict(color="#4ECDC4", width=2),
-        fill="tozeroy", fillcolor="rgba(78,205,196,0.15)",
-    ))
+    _fig_vre.add_trace(
+        go.Scatter(
+            x=_snapshots,
+            y=_solar_max.values,
+            name="Solar — max available",
+            mode="lines",
+            line=dict(color="#FFD700", width=1.5, dash="dash"),
+        )
+    )
+    _fig_vre.add_trace(
+        go.Scatter(
+            x=_snapshots,
+            y=_solar_actual.values,
+            name="Solar — dispatched",
+            mode="lines",
+            line=dict(color="#FFD700", width=2),
+            fill="tozeroy",
+            fillcolor="rgba(255,215,0,0.15)",
+        )
+    )
+    _fig_vre.add_trace(
+        go.Scatter(
+            x=_snapshots,
+            y=_wind_max.values,
+            name="Wind — max available",
+            mode="lines",
+            line=dict(color="#4ECDC4", width=1.5, dash="dash"),
+        )
+    )
+    _fig_vre.add_trace(
+        go.Scatter(
+            x=_snapshots,
+            y=_wind_actual.values,
+            name="Wind — dispatched",
+            mode="lines",
+            line=dict(color="#4ECDC4", width=2),
+            fill="tozeroy",
+            fillcolor="rgba(78,205,196,0.15)",
+        )
+    )
 
     _fig_vre.update_layout(
         title="VRE Available vs Dispatched Output",
@@ -1331,7 +1361,7 @@ def _(fig_bar, fig_dispatch, fig_pie, fig_vre, mo, network, price):
     mo.stop(network is None, None)
 
     _avg_price = price.mean()
-            
+
     _results = mo.vstack(
         [
             mo.md("## 📊 Results"),
@@ -1347,8 +1377,10 @@ def _(fig_bar, fig_dispatch, fig_pie, fig_vre, mo, network, price):
             ),
             fig_dispatch,
             mo.md("### VRE Available vs Dispatched"),
-            mo.md("_Dashed lines show the maximum available output (capacity × capacity factor); "
-                  "solid filled areas show what was actually dispatched._"),
+            mo.md(
+                "_Dashed lines show the maximum available output (capacity × capacity factor); "
+                "solid filled areas show what was actually dispatched._"
+            ),
             fig_vre,
             mo.hstack(
                 [
