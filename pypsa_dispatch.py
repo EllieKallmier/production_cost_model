@@ -13,7 +13,7 @@
 
 import marimo
 
-__generated_with = "0.20.4"
+__generated_with = "0.21.0"
 app = marimo.App(width="wide", app_title="NEM Production Cost Model")
 
 
@@ -34,7 +34,6 @@ def _():
 
     pd.options.future.infer_string = False
 
-    import numpy as np
     import plotly.graph_objects as go
     import pypsa
     from plotly.subplots import make_subplots
@@ -736,7 +735,7 @@ def _():
 
 @app.cell
 def _(mo):
-    intro=mo.md("""
+    intro = mo.md("""
     # ⚡ NEM Production Cost Model
 
     This notebook runs a simplified **single-node production cost model** of the
@@ -746,7 +745,7 @@ def _(mo):
     |---|---|
     | **Region** | CNSW subregion (Central-West NSW) |
     | **VRE traces** | REZ N1 – New England NSW (Solar SAT & Wind WH) |
-    | **Demand traces** | CNSW · Step Change scenario · POE50 |
+    | **Demand traces** | CNSW · Step Change scenario · POE50 · Total load: ~133,700MWh|
     | **Reference year** | 2018 (first full summer week: Mon 3 Dec → Sun 9 Dec) |
     | **Time resolution** | Hourly (168 snapshots) |
 
@@ -763,12 +762,12 @@ def _(mo):
 @app.cell
 def _(mo):
     _GEN_DEFAULTS = {
-        #            p_nom (MW)  MC ($/MWh)
-        "Solar SAT": (500, 0.0),
-        "Wind (WH)": (400, 0.0),
-        "Gas (CCGT)": (300, 80.0),
-        "Coal": (1000, 30.0),
-        "Unserved Load": (50000, 15000.0),
+        #              p_nom (MW)  MC ($/MWh)  type
+        "Solar SAT": (500, 3.0, "Non-sync"),
+        "Wind (WH)": (400, 12.0, "Non-sync"),
+        "Gas (CCGT)": (300, 100.0, "Sync"),
+        "Coal": (1000, 20.0, "Sync"),
+        "Unserved Load": (10000, 20300.0, "Non-sync"),
     }
 
     p_nom = {
@@ -776,9 +775,10 @@ def _(mo):
         for name, vals in _GEN_DEFAULTS.items()
     }
     mc = {
-        name: mo.ui.number(start=0, stop=20000, step=1, value=vals[1])
+        name: mo.ui.number(start=0, stop=30000, step=1, value=vals[1])
         for name, vals in _GEN_DEFAULTS.items()
     }
+    gen_type = {name: vals[2] for name, vals in _GEN_DEFAULTS.items()}
     enabled = {name: mo.ui.switch(value=True) for name in _GEN_DEFAULTS}
     # Unserved Load is always enabled (keep feasibility)
     enabled["Unserved Load"] = mo.ui.switch(value=True)
@@ -786,8 +786,9 @@ def _(mo):
     _header = mo.hstack(
         [
             mo.md("**Generator**"),
-            mo.md("**Installed Capacity (MW)**"),
+            mo.md("**Capacity (MW)**"),
             mo.md("**Marginal Cost ($/MWh)**"),
+            mo.md("**Type**"),
             mo.md("**Active**"),
         ]
     )
@@ -798,6 +799,7 @@ def _(mo):
                 mo.md(f"`{name}`"),
                 p_nom[name],
                 mc[name],
+                mo.md(f"_{gen_type[name]}_"),
                 enabled[name],
             ]
         )
@@ -805,7 +807,7 @@ def _(mo):
     ]
 
     gen_table = mo.vstack([_header] + _rows)
-    return enabled, gen_table, mc, p_nom
+    return enabled, gen_table, gen_type, mc, p_nom
 
 
 @app.cell
@@ -817,9 +819,49 @@ def _(mo):
         start=0.5, stop=12, step=0.5, value=2.0, label="Storage duration (h)"
     )
     bat_enabled = mo.ui.switch(value=True, label="Include battery")
+    bat_soc_start = mo.ui.number(
+        start=0, stop=1, step=0.05, value=0.5, label="Initial SoC (p.u.)"
+    )
 
-    bat_section = mo.hstack([bat_enabled, bat_power, bat_hours])
-    return bat_enabled, bat_hours, bat_power, bat_section
+    bat_section = mo.hstack([bat_enabled, bat_power, bat_hours, bat_soc_start])
+    return bat_enabled, bat_hours, bat_power, bat_section, bat_soc_start
+
+
+@app.cell
+def _(mo):
+    sync_min_enabled = mo.ui.switch(
+        value=False, label="Enable min synchronous generation"
+    )
+    sync_min_frac = mo.ui.number(
+        start=0,
+        stop=1,
+        step=0.05,
+        value=0.3,
+        label="Min synchronous fraction of demand (p.u.)",
+    )
+
+    emit_max_enabled = mo.ui.switch(value=False, label="Enable max emissions")
+    emit_cap = mo.ui.number(
+        start=0,
+        stop=500000,
+        step=1000,
+        value=50000,
+        label="Emissions cap (tCO₂ over simulation period)",
+    )
+
+    constraint_section = mo.vstack(
+        [
+            mo.hstack([sync_min_enabled, sync_min_frac]),
+            mo.hstack([emit_max_enabled, emit_cap]),
+        ]
+    )
+    return (
+        constraint_section,
+        emit_cap,
+        emit_max_enabled,
+        sync_min_enabled,
+        sync_min_frac,
+    )
 
 
 @app.cell
@@ -829,7 +871,7 @@ def _(mo):
 
 
 @app.cell
-def _(bat_section, gen_table, intro, mo, run_button):
+def _(bat_section, constraint_section, gen_table, intro, mo, run_button):
     _ui = mo.vstack(
         [
             intro,
@@ -838,8 +880,8 @@ def _(bat_section, gen_table, intro, mo, run_button):
                     [
                         mo.md("## ⚙️ Generator Parameters"),
                         mo.md(
-                            "_Edit the capacity and marginal cost for each generator, "
-                            "then click **Run Model**._"
+                            "_Edit the capacity, marginal cost, ramp rates, and type for "
+                            "each generator, then click **Run Model**._"
                         ),
                         gen_table,
                     ]
@@ -851,10 +893,24 @@ def _(bat_section, gen_table, intro, mo, run_button):
                     [
                         mo.md("## 🔋 Battery Storage"),
                         mo.md(
-                            "_Toggle battery storage on/off and set power capacity and "
-                            "storage duration._"
+                            "_Toggle battery storage on/off and set power capacity, "
+                            "storage duration, and initial state of charge._"
                         ),
                         bat_section,
+                    ]
+                ),
+                kind="neutral",
+            ),
+            mo.callout(
+                mo.vstack(
+                    [
+                        mo.md("## 📐 System Constraints"),
+                        mo.md(
+                            "_Optionally enforce a minimum synchronous generation floor "
+                            "(as a fraction of instantaneous demand) and/or a maximum "
+                            "total emissions cap over the simulation period._"
+                        ),
+                        constraint_section,
                     ]
                 ),
                 kind="neutral",
@@ -875,13 +931,19 @@ def _(
     bat_enabled,
     bat_hours,
     bat_power,
+    bat_soc_start,
+    emit_cap,
+    emit_max_enabled,
     enabled,
+    gen_type,
     mc,
     mo,
     p_nom,
     pd,
     pypsa,
     run_button,
+    sync_min_enabled,
+    sync_min_frac,
 ):
     run_button  # reactive dependency – re-execute this cell when button clicked
 
@@ -956,6 +1018,7 @@ def _(
 
     # ---- Battery storage ---------------------------------------------------
     if bat_enabled.value and bat_power.value > 0:
+        _bat_energy_mwh = bat_power.value * bat_hours.value
         _n.add(
             "StorageUnit",
             "Battery",
@@ -964,15 +1027,44 @@ def _(
             max_hours=bat_hours.value,
             marginal_cost=0.0,
             p_nom_extendable=False,
-            cyclic_state_of_charge=True,
+            state_of_charge_initial=bat_soc_start.value * _bat_energy_mwh,
         )
 
     # ---- Demand (load) -----------------------------------------------------
     _n.add("Load", "Demand", bus="CNSW", p_set=pd.Series(DEMAND_MW, index=_snapshots))
 
+    # ---- Custom constraints (extra_functionality callback) -----------------
+    _EMIT_FACTORS = {"Coal": 0.9, "Gas (CCGT)": 0.4}  # tCO₂/MWh; others = 0
+
+    def _extra(n, snapshots):
+        # -- Minimum synchronous generation ----------------------------------
+        if sync_min_enabled.value:
+            _sync_gens = [
+                g for g in n.generators.index if g in gen_type and gen_type[g] == "Sync"
+            ]
+            if _sync_gens:
+                _gen_p = n.model.variables["Generator-p"]
+                _sync_sum = _gen_p.sel(name=_sync_gens).sum("name")
+                _demand_s = pd.Series(DEMAND_MW, index=snapshots)
+                n.model.add_constraints(
+                    _sync_sum >= _demand_s * sync_min_frac.value,
+                    name="sync_min",
+                )
+        # -- Maximum emissions -----------------------------------------------
+        if emit_max_enabled.value:
+            _gen_p = n.model.variables["Generator-p"]
+            _ef = pd.Series({g: _EMIT_FACTORS.get(g, 0.0) for g in n.generators.index})
+            _ef.index.name = "name"
+            _total_emit = (_gen_p * _ef).sum()
+            n.model.add_constraints(_total_emit <= emit_cap.value, name="max_emissions")
+
     # ---- Solve -------------------------------------------------------------
     try:
-        _n.optimize(solver_name="highs", solver_options={"output_flag": False})
+        _n.optimize(
+            solver_name="highs",
+            solver_options={"output_flag": False},
+            extra_functionality=_extra,
+        )
         network = _n
         solve_msg = None
     except Exception as _e:
@@ -1180,19 +1272,84 @@ def _(bat_charge, dispatch, go, mo, network, price):
 
 
 @app.cell
-def _(fig_bar, fig_dispatch, fig_pie, mo, network):
+def _():
+    return
+
+
+@app.cell
+def _(SOLAR_CF, WIND_CF, dispatch, go, mo, network, p_nom, pd):
     mo.stop(network is None, None)
 
+    _snapshots = dispatch.index
+    _solar_max = pd.Series([cf * p_nom["Solar SAT"].value for cf in SOLAR_CF], index=_snapshots)
+    _wind_max  = pd.Series([cf * p_nom["Wind (WH)"].value  for cf in WIND_CF],  index=_snapshots)
+
+    _solar_actual = dispatch["Solar SAT"] if "Solar SAT" in dispatch.columns else pd.Series(0.0, index=_snapshots)
+    _wind_actual  = dispatch["Wind (WH)"]  if "Wind (WH)"  in dispatch.columns else pd.Series(0.0, index=_snapshots)
+
+    _fig_vre = go.Figure()
+
+    _fig_vre.add_trace(go.Scatter(
+        x=_snapshots, y=_solar_max.values,
+        name="Solar — max available", mode="lines",
+        line=dict(color="#FFD700", width=1.5, dash="dash"),
+    ))
+    _fig_vre.add_trace(go.Scatter(
+        x=_snapshots, y=_solar_actual.values,
+        name="Solar — dispatched", mode="lines",
+        line=dict(color="#FFD700", width=2),
+        fill="tozeroy", fillcolor="rgba(255,215,0,0.15)",
+    ))
+    _fig_vre.add_trace(go.Scatter(
+        x=_snapshots, y=_wind_max.values,
+        name="Wind — max available", mode="lines",
+        line=dict(color="#4ECDC4", width=1.5, dash="dash"),
+    ))
+    _fig_vre.add_trace(go.Scatter(
+        x=_snapshots, y=_wind_actual.values,
+        name="Wind — dispatched", mode="lines",
+        line=dict(color="#4ECDC4", width=2),
+        fill="tozeroy", fillcolor="rgba(78,205,196,0.15)",
+    ))
+
+    _fig_vre.update_layout(
+        title="VRE Available vs Dispatched Output",
+        xaxis_title="Date / Time",
+        yaxis_title="Power (MW)",
+        legend=dict(orientation="h", y=-0.2),
+        hovermode="x unified",
+        height=420,
+        margin=dict(t=60, b=100),
+    )
+
+    fig_vre = _fig_vre
+    return (fig_vre,)
+
+
+@app.cell
+def _(fig_bar, fig_dispatch, fig_pie, fig_vre, mo, network, price):
+    mo.stop(network is None, None)
+
+    _avg_price = price.mean()
+            
     _results = mo.vstack(
         [
             mo.md("## 📊 Results"),
             mo.md("### Dispatch & Marginal Price"),
+            mo.stat(
+                value=f"${_avg_price:.2f}/MWh",
+                label="Time-averaged marginal cost — Week of 3–9 Dec 2018",
+            ),
             mo.md(
                 "_The stacked areas show generator output (MW) in each hour. "
                 "The dotted black line is demand. The purple line (right axis) shows the "
                 "system marginal price (shadow price on the energy balance constraint)._"
             ),
             fig_dispatch,
+            mo.md("### VRE Available vs Dispatched"),
+            mo.md("_Dashed lines show the maximum available output (capacity × capacity factor); "
+                  "solid filled areas show what was actually dispatched._"),
+            fig_vre,
             mo.hstack(
                 [
                     mo.vstack([mo.md("### Energy Mix"), fig_pie]),
