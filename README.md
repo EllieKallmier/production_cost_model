@@ -2,16 +2,16 @@
 
 Two interactive, browser-runnable power system models of the **National Electricity Market (NEM)** built with [PyPSA](https://pypsa.org/) and [Marimo](https://marimo.io/). Designed for use in **SOLA5050**.
 
-| Notebook            | Purpose                                      | Badge                                                                                                                                      |
-| ------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `pypsa_dispatch.py` | Single-region PCM (dispatch only)            | [![Open in MoLab](https://marimo.io/shield.svg)](https://marimo.io/github/EllieKallmier/production_cost_model/blob/main/pypsa_dispatch.py) |
-| `pypsa_cem.py`      | 5-region CEM (capacity expansion + dispatch) | [![Open in MoLab](https://marimo.io/shield.svg)](https://marimo.io/github/EllieKallmier/production_cost_model/blob/main/pypsa_cem.py)      |
+| Notebook            | Purpose                                      | Badge                                                                                                                                                  |
+| ------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pypsa_dispatch.py` | Single-region PCM (dispatch only)            | [![Open in MoLab](https://marimo.io/molab-shield.svg)](https://molab.marimo.io/github/EllieKallmier/production_cost_model/blob/main/pypsa_dispatch.py) |
+| `pypsa_cem.py`      | 5-region CEM (capacity expansion + dispatch) | [![Open in MoLab](https://marimo.io/molab-shield.svg)](https://molab.marimo.io/github/EllieKallmier/production_cost_model/blob/main/pypsa_cem.py)      |
 
 ---
 
 ## NEM Capacity Expansion Model (`pypsa_cem.py`)
 
-A multi-period investment optimisation model across all five NEM regions (QLD, NSW, VIC, SA, TAS). The model finds the **least-cost mix of new generation and storage** to build over three investment horizons (2025, 2030, 2050) while respecting existing assets, interconnector limits, and user-defined policy constraints.
+A multi-period investment optimisation model across all five NEM regions (QLD, NSW, VIC, SA, TAS). The model finds the **least-cost mix of new generation and storage** to build over four investment horizons (2025, 2030, 2040, 2050) while respecting existing assets, interconnector limits, and user-defined policy constraints.
 
 ### What you can explore
 
@@ -30,21 +30,21 @@ A multi-period investment optimisation model across all five NEM regions (QLD, N
 | 3   | Carbon price $50/tCO₂               | Moderate carbon price                |
 | 4   | Carbon price $100/tCO₂ + early coal | Deep decarbonisation pathway         |
 | 5   | High DER orchestration              | 3 GW VPP + 2 GW DSP                  |
-| 6   | Low WACC (concessional finance)     | WACC halved to 3.5%                  |
+| 6   | Low WACC (concessional finance)     | WACC reduced to 6%                   |
 
 ### Model details
 
-| Parameter               | Value                                                                                          |
-| ----------------------- | ---------------------------------------------------------------------------------------------- |
-| **Regions**             | QLD, NSW, VIC, SA, TAS                                                                         |
-| **Interconnectors**     | QNI, Terranora, VNI, Heywood, Murraylink, Basslink                                             |
-| **Investment periods**  | 2025 (5 yr), 2030 (20 yr), 2050 (10 yr)                                                        |
-| **Representative week** | Mon 1 Dec 2025 – Sun 7 Dec (56 × 3-hourly snapshots)                                           |
-| **VRE data**            | AEMO ISP 2024, Step Change scenario                                                            |
-| **New-entrant techs**   | Solar SAT, Wind WM, Offshore wind (VIC), OCGT, CCGT, CCGT-CCS, 4-hr battery, 8-hr pumped hydro |
-| **Existing assets**     | Coal (7 stations), gas (aggregate by region), hydro, existing RE                               |
-| **Cost source**         | CSIRO GenCost 2023-24                                                                          |
-| **Solver**              | HiGHS (via linopy)                                                                             |
+| Parameter                | Value                                                                                          |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
+| **Regions**              | QLD, NSW, VIC, SA, TAS                                                                         |
+| **Interconnectors**      | QNI, Terranora, VNI, Heywood, Murraylink, Basslink                                             |
+| **Investment periods**   | 2025 (5 yr), 2030 (10 yr), 2040 (10 yr), 2050 (10 yr)                                          |
+| **Representative weeks** | Summer (Dec) + Winter (Jun) · 28 + 28 × 6-hourly = 56 snapshots/period                         |
+| **VRE data**             | AEMO ISP 2024, Step Change scenario, WH wind traces                                            |
+| **New-entrant techs**    | Solar SAT, Wind WH, Offshore wind (VIC), OCGT, CCGT, CCGT-CCS, 4-hr battery, 8-hr pumped hydro |
+| **Existing assets**      | Coal (7 stations), gas (aggregate by region), hydro, existing RE                               |
+| **Cost source**          | CSIRO GenCost 2023-24                                                                          |
+| **Solver**               | HiGHS (via linopy)                                                                             |
 
 ### How to run
 

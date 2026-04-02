@@ -2008,8 +2008,8 @@ def _(mo):
     | 2040   | 10 years | 156.4 h/snapshot |
     | 2050   | 10 years | 156.4 h/snapshot |
 
-    > **Solve time:** HiGHS typically takes 3–10 minutes for this model locally.
-    > In MoLab (WASM) expect 10–30 minutes — start the solve, then explore the controls.
+    > **Solve time:** HiGHS typically takes a few minutes for this model locally.
+    > In MoLab these scenarios may run slowly depending on your internet connection — start the solve, then explore the controls.
     """)
     return
 
