@@ -48,6 +48,15 @@ A multi-period investment optimisation model across all five NEM regions (QLD, N
 
 ### How to run
 
+**Option 1 — Run in MoLab (recommended for students)**
+
+Open the interactive app directly in your browser:  
+👉 **https://molab.marimo.io/notebooks/nb_xmjH4ATUREUhaeJRWKLrY5/app**
+
+No installation required. Adjust sliders, select scenarios, and run the model entirely in your browser.
+
+**Option 2 — Run locally with `uv`**
+
 ```bash
 # Local (read-only)
 uv run marimo run pypsa_cem.py
@@ -56,7 +65,7 @@ uv run marimo run pypsa_cem.py
 uv run marimo edit pypsa_cem.py
 ```
 
-Or click the MoLab badge above. **Solve time:** ~3–10 min locally; ~10–30 min in WASM.
+**Solve time:** A few minutes locally; may vary in MoLab depending on connection speed.
 
 ### Re-extracting the trace data
 
