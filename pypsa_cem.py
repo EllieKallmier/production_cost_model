@@ -3846,6 +3846,42 @@ def _(CARRIER_COLOURS, emit_df, go):
 
 
 @app.cell
+def _(CARRIER_COLOURS, CARRIER_ORDER, MODEL_YEARS, dispatch_by_carrier, go):
+    _fig4b = go.Figure()
+    _gen_carriers = (
+        dispatch_by_carrier[dispatch_by_carrier["energy_TWh"] > 0]["carrier"]
+        .unique()
+        .tolist()
+    )
+    _order4b = [c for c in CARRIER_ORDER if c in _gen_carriers]
+
+    for _car in _order4b:
+        _sub = dispatch_by_carrier[dispatch_by_carrier["carrier"] == _car]
+        _x4b = [str(p) for p in MODEL_YEARS]
+        _y4b = [_sub.loc[_sub["period"] == p, "energy_TWh"].sum() for p in MODEL_YEARS]
+        _fig4b.add_trace(
+            go.Bar(
+                name=_car,
+                x=_x4b,
+                y=_y4b,
+                marker_color=CARRIER_COLOURS.get(_car, "#999"),
+            )
+        )
+
+    _fig4b.update_layout(
+        barmode="stack",
+        title="Annual generation output by technology",
+        xaxis_title="Investment period",
+        yaxis_title="Energy generation (TWh/yr)",
+        legend_title="Technology",
+        height=380,
+        margin=dict(t=50, b=40),
+    )
+    _fig4b
+    return
+
+
+@app.cell
 def _(CARRIER_COLOURS, CARRIER_ORDER, MODEL_YEARS, go, invest_by_carrier):
     _fig5 = go.Figure()
     _cars = invest_by_carrier["carrier"].unique().tolist()
