@@ -1,13 +1,14 @@
 # /// script
-# requires-python = ">=3.11"
+# requires-python = ">=3.12"
 # dependencies = [
-#   "marimo>=0.9",
-#   "pypsa>=1.1",
-#   "linopy>=0.3",
-#   "highspy",
-#   "plotly>=5",
-#   "pandas>=2",
-#   "numpy>=1.24",
+#   "marimo==0.20.4",
+#   "pypsa==1.1.2",
+#   "linopy==0.6.5",
+#   "highspy==1.13.1",
+#   "plotly==6.6.0",
+#   "pandas==3.0.1",
+#   "numpy==2.4.3",
+#   "xarray==2026.2.0",
 # ]
 # ///
 

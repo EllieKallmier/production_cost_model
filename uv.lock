@@ -1561,6 +1561,7 @@ dependencies = [
     { name = "pandas" },
     { name = "plotly" },
     { name = "pypsa" },
+    { name = "xarray" },
 ]
 
 [package.metadata]
@@ -1573,6 +1574,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=3.0.1" },
     { name = "plotly", specifier = ">=6.6.0" },
     { name = "pypsa", specifier = ">=1.1.2" },
+    { name = "xarray", specifier = "<2026.4.0" },
 ]
 
 [[package]]
